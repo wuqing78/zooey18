@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Bitcoin Address Monitor</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-black text-white min-h-screen flex items-center justify-center p-6">
+
+<div class="max-w-3xl w-full bg-zinc-900 rounded-3xl p-8 border border-zinc-800">
+
+  <div class="flex justify-between items-center mb-8">
+    <div>
+      <h1 class="text-3xl font-bold mb-2">
+        Bitcoin Address Monitor
+      </h1>
+
+      <p class="text-zinc-400 break-all text-sm" id="address">
+      </p>
+    </div>
+
+    <div class="text-4xl">
+      ₿
+    </div>
+  </div>
+
+  <div class="grid md:grid-cols-2 gap-6">
+
+    <div class="bg-zinc-800 rounded-3xl p-6">
+      <div class="text-zinc-400 text-sm mb-2">
+        当前余额
+      </div>
+
+      <div class="text-4xl font-bold" id="btcBalance">
+        --
+      </div>
+
+      <div class="text-orange-400 mt-2">
+        BTC
+      </div>
+    </div>
+
+    <div class="bg-zinc-800 rounded-3xl p-6">
+      <div class="text-zinc-400 text-sm mb-2">
+        当前美元价值
+      </div>
+
+      <div class="text-4xl font-bold" id="usdValue">
+        --
+      </div>
+
+      <div class="text-green-400 mt-2">
+        USD
+      </div>
+    </div>
+
+  </div>
+
+  <div class="mt-8 grid md:grid-cols-2 gap-4">
+
+    <div class="bg-zinc-800 rounded-2xl p-4">
+      <div class="text-zinc-500 text-xs mb-1">
+        BTC 实时价格
+      </div>
+
+      <div class="text-xl font-semibold" id="btcPrice">
+        --
+      </div>
+    </div>
+
+    <div class="bg-zinc-800 rounded-2xl p-4">
+      <div class="text-zinc-500 text-xs mb-1">
+        最后更新时间
+      </div>
+
+      <div class="text-xl font-semibold" id="updatedTime">
+        --
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+<script>
+
+const address = "bc1prgljdtxd7mkanjnggkz7345u9wm8c5vpsj7kxqne3786q7plhu9qdlemn5";
+
+document.getElementById("address").innerText = address;
+
+async function fetchData() {
+
+  try {
+
+    const balanceRes = await fetch(
+      `https://blockstream.info/api/address/${address}`
+    );
+
+    const balanceData = await balanceRes.json();
+
+    const funded = balanceData.chain_stats.funded_txo_sum;
+    const spent = balanceData.chain_stats.spent_txo_sum;
+
+    const sats = funded - spent;
+
+    const btc = sats / 100000000;
+
+    const priceRes = await fetch(
+      "https://api.coinbase.com/v2/exchange-rates?currency=BTC"
+    );
+
+    const priceData = await priceRes.json();
+
+    const price = 1 / priceData.data.rates.USD;
+
+    const usd = btc * price;
+
+    document.getElementById("btcBalance").innerText =
+      btc.toFixed(8);
+
+    document.getElementById("usdValue").innerText =
+      "$" + usd.toLocaleString(undefined, {
+        maximumFractionDigits: 2
+      });
+
+    document.getElementById("btcPrice").innerText =
+      "$" + price.toLocaleString(undefined, {
+        maximumFractionDigits: 2
+      });
+
+    document.getElementById("updatedTime").innerText =
+      new Date().toLocaleTimeString();
+
+  } catch (err) {
+
+    console.error(err);
+
+  }
+
+}
+
+fetchData();
+
+setInterval(fetchData, 30000);
+
+</script>
+
+</body>
+</html>
