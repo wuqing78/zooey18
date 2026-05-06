@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Bitcoin Address Monitor</title>
+  <title>Zooey 18</title>
 
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
@@ -15,7 +15,7 @@
   <div class="flex justify-between items-center mb-8">
     <div>
       <h1 class="text-3xl font-bold mb-2">
-        Bitcoin Address Monitor
+        Zooey 18
       </h1>
 
       <p class="text-zinc-400 break-all text-sm" id="address">
@@ -45,7 +45,7 @@
 
     <div class="bg-zinc-800 rounded-3xl p-6">
       <div class="text-zinc-400 text-sm mb-2">
-        当前美元价值
+        当前价值
       </div>
 
       <div class="text-4xl font-bold" id="usdValue">
@@ -96,7 +96,7 @@ async function fetchData() {
   try {
 
     const balanceRes = await fetch(
-      `https://blockstream.info/api/address/${address}`
+      `https://mempool.space/api/address/${address}`
     );
 
     const balanceData = await balanceRes.json();
@@ -109,7 +109,7 @@ async function fetchData() {
     const btc = sats / 100000000;
 
     const priceRes = await fetch(
-      "https://api.coinbase.com/v2/exchange-rates?currency=BTC"
+      "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd"
     );
 
     const priceData = await priceRes.json();
