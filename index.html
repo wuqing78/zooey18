@@ -1,152 +1,173 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Zooey 18</title>
+export default function BitcoinAddressDashboard() {
+  const { useEffect, useState } = React;
 
-  <script src="https://cdn.tailwindcss.com"></script>
-</head>
+  const address = "bc1prgljdtxd7mkanjnggkz7345u9wm8c5vpsj7kxqne3786q7plhu9qdlemn5";
 
-<body class="bg-black text-white min-h-screen flex items-center justify-center p-6">
+  const [balance, setBalance] = useState(null);
+  const [usdValue, setUsdValue] = useState(null);
+  const [btcPrice, setBtcPrice] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [lastUpdated, setLastUpdated] = useState(null);
+  const [error, setError] = useState(null);
 
-<div class="max-w-3xl w-full bg-zinc-900 rounded-3xl p-8 border border-zinc-800">
+  async function fetchData() {
+    try {
+      setError(null);
 
-  <div class="flex justify-between items-center mb-8">
-    <div>
-      <h1 class="text-3xl font-bold mb-2">
-        Zooey 18
-      </h1>
+      // 获取 BTC 地址余额
+      const balanceRes = await fetch(
+        `https://api.blockcypher.com/v1/btc/main/addrs/${address}/balance`
+      );
 
-      <p class="text-zinc-400 break-all text-sm" id="address">
-      </p>
-    </div>
+      if (!balanceRes.ok) {
+        throw new Error("无法获取地址余额");
+      }
 
-    <div class="text-4xl">
-      ₿
-    </div>
-  </div>
+      const balanceData = await balanceRes.json();
 
-  <div class="grid md:grid-cols-2 gap-6">
+      const sats = balanceData.final_balance || 0;
+      const btc = sats / 100000000;
 
-    <div class="bg-zinc-800 rounded-3xl p-6">
-      <div class="text-zinc-400 text-sm mb-2">
-        当前余额
-      </div>
+      // 获取 BTC 当前美元价格
+      const priceRes = await fetch(
+        "https://api.coinbase.com/v2/prices/spot?currency=USD"
+      );
 
-      <div class="text-4xl font-bold" id="btcBalance">
-        --
-      </div>
+      if (!priceRes.ok) {
+        throw new Error("无法获取 BTC 价格");
+      }
 
-      <div class="text-orange-400 mt-2">
-        BTC
-      </div>
-    </div>
+      const priceData = await priceRes.json();
+      const price = parseFloat(priceData.data.amount);
 
-    <div class="bg-zinc-800 rounded-3xl p-6">
-      <div class="text-zinc-400 text-sm mb-2">
-        当前价值
-      </div>
-
-      <div class="text-4xl font-bold" id="usdValue">
-        --
-      </div>
-
-      <div class="text-green-400 mt-2">
-        USD
-      </div>
-    </div>
-
-  </div>
-
-  <div class="mt-8 grid md:grid-cols-2 gap-4">
-
-    <div class="bg-zinc-800 rounded-2xl p-4">
-      <div class="text-zinc-500 text-xs mb-1">
-        BTC 实时价格
-      </div>
-
-      <div class="text-xl font-semibold" id="btcPrice">
-        --
-      </div>
-    </div>
-
-    <div class="bg-zinc-800 rounded-2xl p-4">
-      <div class="text-zinc-500 text-xs mb-1">
-        最后更新时间
-      </div>
-
-      <div class="text-xl font-semibold" id="updatedTime">
-        --
-      </div>
-    </div>
-
-  </div>
-
-</div>
-
-<script>
-
-const address = "bc1prgljdtxd7mkanjnggkz7345u9wm8c5vpsj7kxqne3786q7plhu9qdlemn5";
-
-document.getElementById("address").innerText = address;
-
-async function fetchData() {
-
-  try {
-
-    const balanceRes = await fetch(
-      `https://mempool.space/api/address/${address}`
-    );
-
-    const balanceData = await balanceRes.json();
-
-    const funded = balanceData.chain_stats.funded_txo_sum;
-    const spent = balanceData.chain_stats.spent_txo_sum;
-
-    const sats = funded - spent;
-
-    const btc = sats / 100000000;
-
-    const priceRes = await fetch(
-      "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd"
-    );
-
-    const priceData = await priceRes.json();
-
-    const price = 1 / priceData.data.rates.USD;
-
-    const usd = btc * price;
-
-    document.getElementById("btcBalance").innerText =
-      btc.toFixed(8);
-
-    document.getElementById("usdValue").innerText =
-      "$" + usd.toLocaleString(undefined, {
-        maximumFractionDigits: 2
-      });
-
-    document.getElementById("btcPrice").innerText =
-      "$" + price.toLocaleString(undefined, {
-        maximumFractionDigits: 2
-      });
-
-    document.getElementById("updatedTime").innerText =
-      new Date().toLocaleTimeString();
-
-  } catch (err) {
-
-    console.error(err);
-
+      setBalance(btc);
+      setBtcPrice(price);
+      setUsdValue(btc * price);
+      setLastUpdated(new Date());
+    } catch (err) {
+      setError(err.message || "发生错误");
+    } finally {
+      setLoading(false);
+    }
   }
 
+  useEffect(() => {
+    fetchData();
+
+    const interval = setInterval(() => {
+      fetchData();
+    }, 30000); // 每 30 秒刷新一次
+
+    return () => clearInterval(interval);
+  }, []);
+
+  const formatUSD = (num) => {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
+      maximumFractionDigits: 2,
+    }).format(num || 0);
+  };
+
+  return (
+    <div className="min-h-screen bg-black text-white flex items-center justify-center p-6">
+      <div className="w-full max-w-3xl rounded-3xl border border-zinc-800 bg-zinc-950 shadow-2xl p-8">
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight mb-2">
+              Bitcoin Address Monitor
+            </h1>
+            <p className="text-zinc-400 text-sm break-all">
+              {address}
+            </p>
+          </div>
+
+          <div className="h-14 w-14 rounded-2xl bg-orange-500/20 flex items-center justify-center text-2xl">
+            ₿
+          </div>
+        </div>
+
+        {loading ? (
+          <div className="text-center py-20 text-zinc-400 animate-pulse">
+            正在获取链上数据...
+          </div>
+        ) : error ? (
+          <div className="bg-red-500/10 border border-red-500/30 rounded-2xl p-6 text-red-300">
+            {error}
+          </div>
+        ) : (
+          <div className="grid md:grid-cols-2 gap-6">
+            <div className="rounded-3xl bg-zinc-900 border border-zinc-800 p-6">
+              <div className="text-zinc-400 text-sm mb-3">
+                当前余额
+              </div>
+
+              <div className="text-4xl font-bold tracking-tight">
+                {balance?.toFixed(8)}
+              </div>
+
+              <div className="text-orange-400 mt-2 text-lg">
+                BTC
+              </div>
+            </div>
+
+            <div className="rounded-3xl bg-zinc-900 border border-zinc-800 p-6">
+              <div className="text-zinc-400 text-sm mb-3">
+                当前美元市值
+              </div>
+
+              <div className="text-4xl font-bold tracking-tight">
+                {formatUSD(usdValue)}
+              </div>
+
+              <div className="text-green-400 mt-2 text-lg">
+                USD
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div className="mt-8 grid md:grid-cols-2 gap-4">
+          <div className="rounded-2xl bg-zinc-900/60 border border-zinc-800 p-4">
+            <div className="text-zinc-500 text-xs mb-1">
+              BTC 实时价格
+            </div>
+
+            <div className="text-xl font-semibold">
+              {btcPrice ? formatUSD(btcPrice) : "--"}
+            </div>
+          </div>
+
+          <div className="rounded-2xl bg-zinc-900/60 border border-zinc-800 p-4">
+            <div className="text-zinc-500 text-xs mb-1">
+              最后更新时间
+            </div>
+
+            <div className="text-xl font-semibold">
+              {lastUpdated
+                ? lastUpdated.toLocaleTimeString()
+                : "--"}
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-8 flex flex-wrap gap-3">
+          <button
+            onClick={fetchData}
+            className="px-5 py-3 rounded-2xl bg-orange-500 hover:bg-orange-400 transition text-black font-semibold"
+          >
+            手动刷新
+          </button>
+
+          <a
+            href={`https://mempool.space/address/${address}`}
+            target="_blank"
+            className="px-5 py-3 rounded-2xl border border-zinc-700 hover:border-zinc-500 transition text-zinc-200"
+          >
+            在 Mempool 查看地址
+          </a>
+        </div>
+      </div>
+    </div>
+  );
 }
-
-fetchData();
-
-setInterval(fetchData, 30000);
-
-</script>
-
-</body>
-</html>
