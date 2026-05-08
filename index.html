@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Bitcoin Address Monitor</title>
+  <title>Zooey18</title>
 
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
@@ -15,7 +15,7 @@
     <div class="flex items-center justify-between mb-8">
       <div>
         <h1 class="text-3xl font-bold tracking-tight mb-2">
-          Bitcoin Address Monitor
+          Zooey18
         </h1>
 
         <p id="address" class="text-zinc-400 text-sm break-all"></p>
@@ -100,6 +100,64 @@
 
 <script>
 
+/*
+=============================
+Cloudflare Worker 代码（新建 worker.js）
+=============================
+
+export default {
+  async fetch(request) {
+
+    const address = "bc1prgljdtxd7mkanjnggkz7345u9wm8c5vpsj7kxqne3786q7plhu9qdlemn5";
+
+    try {
+
+      const balanceRes = await fetch(
+        `https://blockchain.info/rawaddr/${address}`
+      );
+
+      const balanceData = await balanceRes.json();
+
+      const sats = balanceData.final_balance || 0;
+
+      const btc = sats / 100000000;
+
+      const priceRes = await fetch(
+        `https://api.coincap.io/v2/assets/bitcoin`
+      );
+
+      const priceData = await priceRes.json();
+
+      const usdPrice = parseFloat(priceData.data.priceUsd);
+
+      const cnyPrice = usdPrice * 7.2;
+
+      return Response.json({
+        btc,
+        usdPrice,
+        cnyPrice,
+        usdValue: btc * usdPrice,
+        cnyValue: btc * cnyPrice,
+        updated: Date.now()
+      });
+
+    } catch (err) {
+
+      return Response.json({
+        error: err.message
+      }, {
+        status: 500
+      });
+
+    }
+  }
+}
+
+=============================
+HTML 页面代码
+=============================
+*/
+
 const address = "bc1prgljdtxd7mkanjnggkz7345u9wm8c5vpsj7kxqne3786q7plhu9qdlemn5";
 
 document.getElementById("address").innerText = address;
@@ -109,13 +167,17 @@ async function fetchData() {
   try {
 
     // BlockCypher 查询余额
-    const balanceRes = await fetch(
-      `https://blockchain.info/rawaddr/${address}?cors=true`
+    const apiRes = await fetch(
+      "https://btc-api.uqinzen.workers.dev/"
     );
 
-    const balanceData = await balanceRes.json();
+    const apiData = await apiRes.json();
 
-    const sats = balanceData.final_balance || 0;
+    if (apiData.error) {
+      throw new Error(apiData.error);
+    }
+
+    const btc = apiData.btc;
 
     const btc = sats / 100000000;
 
