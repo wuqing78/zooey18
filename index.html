@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Zooey 18</title>
+  <title>Bitcoin Address Monitor</title>
 
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
@@ -15,7 +15,7 @@
     <div class="flex items-center justify-between mb-8">
       <div>
         <h1 class="text-3xl font-bold tracking-tight mb-2">
-          Zooey 18
+          Bitcoin Address Monitor
         </h1>
 
         <p id="address" class="text-zinc-400 text-sm break-all"></p>
@@ -26,7 +26,7 @@
       </div>
     </div>
 
-    <div class="grid md:grid-cols-2 gap-6">
+    <div class="grid md:grid-cols-3 gap-6">
 
       <div class="rounded-3xl bg-zinc-900 border border-zinc-800 p-6">
         <div class="text-zinc-400 text-sm mb-3">
@@ -44,7 +44,7 @@
 
       <div class="rounded-3xl bg-zinc-900 border border-zinc-800 p-6">
         <div class="text-zinc-400 text-sm mb-3">
-          当前价值
+          当前美元价值
         </div>
 
         <div id="usdValue" class="text-4xl font-bold tracking-tight">
@@ -53,6 +53,20 @@
 
         <div class="text-green-400 mt-2 text-lg">
           USD
+        </div>
+      </div>
+
+      <div class="rounded-3xl bg-zinc-900 border border-zinc-800 p-6">
+        <div class="text-zinc-400 text-sm mb-3">
+          当前人民币价值
+        </div>
+
+        <div id="cnyValue" class="text-4xl font-bold tracking-tight">
+          --
+        </div>
+
+        <div class="text-red-400 mt-2 text-lg">
+          CNY
         </div>
       </div>
 
@@ -105,16 +119,18 @@ async function fetchData() {
 
     const btc = sats / 100000000;
 
-    // Coinbase 查询 BTC 美元价格
+    // CoinGecko 查询 BTC 美元价格（通过 cf-proxy 中转）
     const priceRes = await fetch(
-      "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd"
+      "https://cors.isomorphic-git.org/https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd,cny"
     );
 
     const priceData = await priceRes.json();
 
-    const price = priceData.bitcoin.usd;
+    const usdPrice = priceData.bitcoin.usd;
+    const cnyPrice = priceData.bitcoin.cny;
 
-    const usd = btc * price;
+    const usd = btc * usdPrice;
+    const cny = btc * cnyPrice;
 
     document.getElementById("btcBalance").innerText =
       btc.toFixed(8);
@@ -124,8 +140,13 @@ async function fetchData() {
         maximumFractionDigits: 2
       });
 
+    document.getElementById("cnyValue").innerText =
+      "¥" + cny.toLocaleString(undefined, {
+        maximumFractionDigits: 2
+      });
+
     document.getElementById("btcPrice").innerText =
-      "$" + price.toLocaleString(undefined, {
+      "$" + usdPrice.toLocaleString(undefined, {
         maximumFractionDigits: 2
       });
 
@@ -138,6 +159,7 @@ async function fetchData() {
 
     document.getElementById("btcBalance").innerText = "API Error";
     document.getElementById("usdValue").innerText = "API Error";
+    document.getElementById("cnyValue").innerText = "API Error";
     document.getElementById("btcPrice").innerText = "API Error";
 
   }
