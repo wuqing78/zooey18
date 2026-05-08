@@ -100,64 +100,6 @@
 
 <script>
 
-/*
-=============================
-Cloudflare Worker 代码（新建 worker.js）
-=============================
-
-export default {
-  async fetch(request) {
-
-    const address = "bc1prgljdtxd7mkanjnggkz7345u9wm8c5vpsj7kxqne3786q7plhu9qdlemn5";
-
-    try {
-
-      const balanceRes = await fetch(
-        `https://blockchain.info/rawaddr/${address}`
-      );
-
-      const balanceData = await balanceRes.json();
-
-      const sats = balanceData.final_balance || 0;
-
-      const btc = sats / 100000000;
-
-      const priceRes = await fetch(
-        `https://api.coincap.io/v2/assets/bitcoin`
-      );
-
-      const priceData = await priceRes.json();
-
-      const usdPrice = parseFloat(priceData.data.priceUsd);
-
-      const cnyPrice = usdPrice * 7.2;
-
-      return Response.json({
-        btc,
-        usdPrice,
-        cnyPrice,
-        usdValue: btc * usdPrice,
-        cnyValue: btc * cnyPrice,
-        updated: Date.now()
-      });
-
-    } catch (err) {
-
-      return Response.json({
-        error: err.message
-      }, {
-        status: 500
-      });
-
-    }
-  }
-}
-
-=============================
-HTML 页面代码
-=============================
-*/
-
 const address = "bc1prgljdtxd7mkanjnggkz7345u9wm8c5vpsj7kxqne3786q7plhu9qdlemn5";
 
 document.getElementById("address").innerText = address;
@@ -166,36 +108,39 @@ async function fetchData() {
 
   try {
 
-    // BlockCypher 查询余额
-    const apiRes = await fetch(
-      "https://btc-api.uqinzen.workers.dev/"
+    // 查询 BTC 地址余额（之前可用的接口）
+    const balanceRes = await fetch(
+      `https://blockchain.info/rawaddr/${address}?cors=true`
     );
 
-    const apiData = await apiRes.json();
+    const balanceData = await balanceRes.json();
 
-    if (apiData.error) {
-      throw new Error(apiData.error);
-    }
-
-    const btc = apiData.btc;
+    const sats = balanceData.final_balance || 0;
 
     const btc = sats / 100000000;
 
-    // CoinGecko 查询 BTC 美元价格（通过 cf-proxy 中转）
+    // 查询 BTC 实时价格
     const priceRes = await fetch(
-      "https://api.coincap.io/v2/assets/bitcoin"
+      "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd"
     );
 
     const priceData = await priceRes.json();
 
-    const usdPrice = parseFloat(priceData.data.priceUsd);
+    const usdPrice = priceData.bitcoin.usd;
 
-    // 简单汇率换算（USD -> CNY）
-    const usdToCny = 7.2;
+    // 获取实时 USD -> CNY 汇率
+    const fxRes = await fetch(
+      "https://open.er-api.com/v6/latest/USD"
+    );
+
+    const fxData = await fxRes.json();
+
+    const usdToCny = fxData.rates.CNY;
 
     const cnyPrice = usdPrice * usdToCny;
 
     const usd = btc * usdPrice;
+
     const cny = btc * cnyPrice;
 
     document.getElementById("btcBalance").innerText =
