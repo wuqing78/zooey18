@@ -121,13 +121,17 @@ async function fetchData() {
 
     // CoinGecko 查询 BTC 美元价格（通过 cf-proxy 中转）
     const priceRes = await fetch(
-      "https://cors.isomorphic-git.org/https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd,cny"
+      "https://api.coincap.io/v2/assets/bitcoin"
     );
 
     const priceData = await priceRes.json();
 
-    const usdPrice = priceData.bitcoin.usd;
-    const cnyPrice = priceData.bitcoin.cny;
+    const usdPrice = parseFloat(priceData.data.priceUsd);
+
+    // 简单汇率换算（USD -> CNY）
+    const usdToCny = 7.2;
+
+    const cnyPrice = usdPrice * usdToCny;
 
     const usd = btc * usdPrice;
     const cny = btc * cnyPrice;
